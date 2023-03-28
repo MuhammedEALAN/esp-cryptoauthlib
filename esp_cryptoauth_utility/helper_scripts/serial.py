@@ -35,14 +35,17 @@ class cmd_interpreter:
     It is a stateless, thus does not maintain the current state of the firmware.
     """
 
-    def wait_for_init(self, port):
+    def __init__(self, connection):
+            self.connection = connection
+
+    def wait_for_init(self):
         print("Wait for init")
-        port.timeout = 1.5
-        port.baudrate = 115200
+        self.connection.timeout = 1.5
+        self.connection.baudrate = 115200
         start_time = time.time()
         p_timeout = 20
         while True:
-            line = port.readline()
+            line = self.connection.readline()
             if b'Initialising Command line: >>' in line:
                 print("- CLI Initialised")
                 return True
@@ -50,22 +53,22 @@ class cmd_interpreter:
                 print("connection timed out")
                 return False
 
-    def exec_cmd(self, port, command, args=None):
+    def exec_cmd(self, command, args=None):
         ret = ""
         status = None
-        port.timeout = 3
-        port.baudrate = 115200
-        port.write(command.encode() + b'\r')
+        self.connection.timeout = 3
+        self.connection.baudrate = 115200
+        self.connection.write(command.encode() + b'\r')
         if args:
             time.sleep(0.1)
             if type(args) is str:
                 args = args.encode()
-            port.write(args)
-            port.write(b'\0')
+            self.connection.write(args)
+            self.connection.write(b'\0')
 
         while True:
-            port.timeout = 1.5
-            line = (port.readline()).decode()
+            self.connection.timeout = 1.5
+            line = (self.connection.readline()).decode()
             print(line)
             if 'Status: Success' in line:
                 status = True
@@ -73,7 +76,7 @@ class cmd_interpreter:
                 status = False
             if status is True or status is False:
                 while True:
-                    line = (port.readline()).decode()
+                    line = (self.connection.readline()).decode()
                     if ">>" in line:
                         if status is True:
                             print(line)
